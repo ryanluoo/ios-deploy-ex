@@ -335,6 +335,7 @@ CFStringRef get_device_full_name(const AMDeviceRef device) {
     CFStringRef full_name = NULL,
                 device_udid = AMDeviceCopyDeviceIdentifier(device),
                 device_name = NULL,
+                product_version = NULL,
                 model_name = NULL,
                 sdk_name = NULL,
                 arch_name = NULL;
@@ -342,6 +343,8 @@ CFStringRef get_device_full_name(const AMDeviceRef device) {
     AMDeviceConnect(device);
 
     device_name = AMDeviceCopyValue(device, 0, CFSTR("DeviceName"));
+    product_version = AMDeviceCopyValue(device, 0, CFSTR("ProductVersion"));
+
 
     // Please ensure that device is connected or the name will be unknown
     CFStringRef model = AMDeviceCopyValue(device, 0, CFSTR("HardwareModel"));
@@ -361,11 +364,13 @@ CFStringRef get_device_full_name(const AMDeviceRef device) {
     NSLogVerbose(@"Model Name: %@", model_name);
     NSLogVerbose(@"SDK Name: %@", sdk_name);
     NSLogVerbose(@"Architecture Name: %@", arch_name);
+    NSLogVerbose(@"Product Version: %@", product_version);
+
 
     if (device_name != NULL) {
-        full_name = CFStringCreateWithFormat(NULL, NULL, CFSTR("%@ (%@, %@, %@, %@) a.k.a. '%@'"), device_udid, model, model_name, sdk_name, arch_name, device_name);
+        full_name = CFStringCreateWithFormat(NULL, NULL, CFSTR("%@ (%@, %@, %@, %@, %@) a.k.a. '%@'"), device_udid, model, model_name, sdk_name, arch_name, product_version, device_name);
     } else {
-        full_name = CFStringCreateWithFormat(NULL, NULL, CFSTR("%@ (%@, %@, %@, %@)"), device_udid, model, model_name, sdk_name, arch_name);
+        full_name = CFStringCreateWithFormat(NULL, NULL, CFSTR("%@ (%@, %@, %@, %@, %@)"), device_udid, model, model_name, sdk_name, arch_name, product_version);
     }
 
     AMDeviceDisconnect(device);
