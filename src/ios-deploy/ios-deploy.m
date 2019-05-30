@@ -1537,7 +1537,8 @@ void uninstall_by_name(AMDeviceRef device)
     assert(AMDeviceIsPaired(device));
     check_error(AMDeviceValidatePairing(device));
     check_error(AMDeviceStartSession(device));
-    
+    NSLogOut(@"------ Search app name phase ------");
+
     NSArray *a = [NSArray arrayWithObjects:
                   @"CFBundleName",
                   @"CFBundleDisplayName",
