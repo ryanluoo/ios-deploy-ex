@@ -1820,6 +1820,7 @@ void usage(const char* app) {
         @"  -p, --port <number>          port used for device, default: dynamic\n"
         @"  -r, --uninstall              uninstall the app before install (do not use with -m; app cache and data are cleared) \n"
         @"  -9, --uninstall_only         uninstall the app ONLY. Use only with -1 <bundle_id> \n"
+        @"  -8, --uninstall_by_name      uninstall the app by display name. \n"
         @"  -1, --bundle_id <bundle id>  specify bundle id for list and upload\n"
         @"  -l, --list                   list files\n"
         @"  -o, --upload <file>          upload file\n"
