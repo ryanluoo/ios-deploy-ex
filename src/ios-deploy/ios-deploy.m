@@ -1296,7 +1296,7 @@ void list_bundle_id(AMDeviceRef device)
     const void *values[count];
     CFDictionaryGetKeysAndValues(result, keys, values);
     
-    NSArray *appInfos = [NSArray arrayWithObjects:values count:count];
+    NSArray *appInfos = [[NSArray arrayWithObjects:values count:count] autorelease];
 
     NSLogOut(@"%@, %@, %@, %@",
              @"CFBundleIdentifier",
@@ -1567,12 +1567,13 @@ void uninstall_by_name(AMDeviceRef device)
     const void *keys[count];
     const void *values[count];
     CFDictionaryGetKeysAndValues(result, keys, values);
-    NSArray *appInfos = [NSArray arrayWithObjects:values count:count];
-    NSString *nsAppName = [NSString stringWithUTF8String:app_name];
+    NSArray *appInfos = [[NSArray arrayWithObjects:values count:count] autorelease];
+    NSString *nsAppName = [[NSString stringWithUTF8String:app_name] autorelease];
     NSString *nsBundleId = nil;
     for (NSDictionary *val in appInfos) {
         if ([val[@"CFBundleDisplayName"] isEqualToString: nsAppName]) {
             nsBundleId = val[@"CFBundleIdentifier"];
+            [nsBundleId retain];
         }
     }
 
