@@ -1281,7 +1281,6 @@ void list_bundle_id(AMDeviceRef device)
     check_error(AMDeviceStartSession(device));
 
     NSArray *a = [NSArray arrayWithObjects:
-                  @"CFBundleName",
                   @"CFBundleDisplayName",
                   @"CFBundleIdentifier",
                   @"CFBundleShortVersionString",
@@ -1297,8 +1296,21 @@ void list_bundle_id(AMDeviceRef device)
     const void *values[count];
     CFDictionaryGetKeysAndValues(result, keys, values);
     
-    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:[NSArray arrayWithObjects:values count:count] options:NSJSONWritingPrettyPrinted error:nil];
-    NSLogOut(@"%@", [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding]);
+    NSArray *appInfos = [NSArray arrayWithObjects:values count:count];
+
+    NSLogOut(@"%@, %@, %@, %@",
+             @"CFBundleIdentifier",
+             @"CFBundleDisplayName",
+             @"CFBundleVersion",
+             @"CFBundleShortVersionString");
+    for (NSDictionary *val in appInfos) {
+        NSLogOut(@"%@, \"%@\", \"%@\", \"%@\"",
+                 val[@"CFBundleIdentifier"],
+                 val[@"CFBundleDisplayName"],
+                 val[@"CFBundleVersion"],
+                 val[@"CFBundleShortVersionString"]);
+    }
+    
 
     check_error(AMDeviceStopSession(device));
     check_error(AMDeviceDisconnect(device));
