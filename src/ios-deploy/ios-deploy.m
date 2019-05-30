@@ -81,6 +81,7 @@ char *command = NULL;
 char const*target_filename = NULL;
 char const*upload_pathname = NULL;
 char *bundle_id = NULL;
+char *app_name= NULL;
 bool interactive = true;
 bool justlaunch = false;
 char *app_path = NULL;
@@ -1529,6 +1530,52 @@ void uninstall_app(AMDeviceRef device) {
     }
 }
 
+
+void uninstall_by_name(AMDeviceRef device)
+{
+    AMDeviceConnect(device);
+    assert(AMDeviceIsPaired(device));
+    check_error(AMDeviceValidatePairing(device));
+    check_error(AMDeviceStartSession(device));
+    
+    NSArray *a = [NSArray arrayWithObjects:
+                  @"CFBundleName",
+                  @"CFBundleDisplayName",
+                  @"CFBundleIdentifier",
+                  @"CFBundleShortVersionString",
+                  @"CFBundleVersion", nil];
+    NSDictionary *optionsDict = [NSDictionary dictionaryWithObject:a forKey:@"ReturnAttributes"];
+    CFDictionaryRef options = (CFDictionaryRef)optionsDict;
+    CFDictionaryRef result = nil;
+    check_error(AMDeviceLookupApplications(device, options, &result));
+    
+    CFIndex count;
+    count = CFDictionaryGetCount(result);
+    const void *keys[count];
+    const void *values[count];
+    CFDictionaryGetKeysAndValues(result, keys, values);
+    NSArray *appInfos = [NSArray arrayWithObjects:values count:count];
+    NSString *nsAppName = [NSString stringWithUTF8String:app_name];
+    NSString *nsBundleId = nil;
+    for (NSDictionary *val in appInfos) {
+        if ([val[@"CFBundleDisplayName"] isEqualToString: nsAppName]) {
+            nsBundleId = val[@"CFBundleIdentifier"];
+        }
+    }
+
+    check_error(AMDeviceStopSession(device));
+    check_error(AMDeviceDisconnect(device));
+    
+    if (nsBundleId != nil) {
+        NSLogOut(@"Bundle id for \"%@\" is %@", nsAppName, nsBundleId);
+        bundle_id = [nsBundleId UTF8String];
+        uninstall_app(device);
+    } else {
+        NSLogOut(@"Can't find the App named \"%@\"", nsAppName);
+    }
+}
+
+
 void handle_device(AMDeviceRef device) {
     NSLogVerbose(@"Already found device? %d", found_device);
 
@@ -1574,6 +1621,8 @@ void handle_device(AMDeviceRef device) {
             uninstall_app(device);
         } else if (strcmp("list_bundle_id", command) == 0) {
             list_bundle_id(device);
+        } else if (strcmp("uninstall_by_name", command) == 0) {
+            uninstall_by_name(device);
         }
         exit(0);
     }
@@ -1819,6 +1868,7 @@ int main(int argc, char *argv[]) {
         { "port", required_argument, NULL, 'p' },
         { "uninstall", no_argument, NULL, 'r' },
         { "uninstall_only", no_argument, NULL, '9'},
+        { "uninstall_by_name", required_argument, NULL, '8'},
         { "list", optional_argument, NULL, 'l' },
         { "bundle_id", required_argument, NULL, '1'},
         { "upload", required_argument, NULL, 'o'},
@@ -1834,7 +1884,7 @@ int main(int argc, char *argv[]) {
     };
     int ch;
 
-    while ((ch = getopt_long(argc, argv, "VmcdvunNrILeD:R:i:b:a:s:t:g:x:p:1:2:o:l::w::9::B::W", longopts, NULL)) != -1)
+    while ((ch = getopt_long(argc, argv, "VmcdvunNrILeD:R:i:b:a:s:t:g:x:p:1:2:o:l::w::8:9::B::W", longopts, NULL)) != -1)
     {
         switch (ch) {
         case 'm':
@@ -1893,6 +1943,11 @@ int main(int argc, char *argv[]) {
             break;
         case 'r':
             uninstall = true;
+            break;
+        case '8':
+            app_name = optarg;
+            command_only = true;
+            command = "uninstall_by_name";
             break;
         case '9':
             command_only = true;
