@@ -1784,7 +1784,7 @@ void timeout_callback(CFRunLoopTimerRef timer, void *info) {
             return;
 
         // App running for too long
-        NSLog(@"[ !! ] App is running for too long");
+        NSLogOut(@"[ !! ] App is running for too long");
         exit(exitcode_timeout);
         return;
     } else if ((!found_device) && (!detect_only))  {
@@ -1823,7 +1823,7 @@ void timeout_callback(CFRunLoopTimerRef timer, void *info) {
 }
 
 void usage(const char* app) {
-    NSLog(
+    NSLogOut(
         @"Usage: %@ [OPTION]...\n"
         @"  -d, --debug                  launch the app in lldb after installation\n"
         @"  -i, --id <device_id>         the id of the device to connect to\n"
