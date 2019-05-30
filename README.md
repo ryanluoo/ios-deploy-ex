@@ -21,7 +21,7 @@ org.videolan.vlc-ios, "VLC", "325", "3.1.9"
 com.sogou.sogouinput, "搜狗输入法", "151563", "6.3.2"
 ```
 
-## Modify: 检测设备时展示设备iOS版本
+## Modify: 检测设备时展示iOS版本
 命令使用：
 ```
 ios-deploy -c
@@ -37,8 +37,8 @@ ios-deploy -c
 ## Add: 根据显示名称卸载App
 命令使用：
 ```
-ios-deploy --uninstall_by_name "你的APP名"
-ios-deploy -8 "你的APP名"
+ios-deploy --uninstall_by_name "APP名称"
+ios-deploy -8 "APP名称"
 ```
 输出：
 ```

@@ -382,6 +382,12 @@ CFStringRef get_device_full_name(const AMDeviceRef device) {
         CFRelease(device_name);
     if(model_name != NULL)
         CFRelease(model_name);
+    if(sdk_name != NULL)
+        CFRelease(sdk_name);
+    if(arch_name != NULL)
+        CFRelease(arch_name);
+    if(product_version != NULL)
+        CFRelease(product_version);
 
     return full_name;
 }
@@ -1296,7 +1302,7 @@ void list_bundle_id(AMDeviceRef device)
     const void *values[count];
     CFDictionaryGetKeysAndValues(result, keys, values);
     
-    NSArray *appInfos = [[NSArray arrayWithObjects:values count:count] autorelease];
+    NSArray *appInfos = [NSArray arrayWithObjects:values count:count];
 
     NSLogOut(@"%@, %@, %@, %@",
              @"CFBundleIdentifier",
@@ -1314,6 +1320,7 @@ void list_bundle_id(AMDeviceRef device)
 
     check_error(AMDeviceStopSession(device));
     check_error(AMDeviceDisconnect(device));
+    CFRelease(result);
 }
 
 void copy_file_callback(afc_connection* afc_conn_p, const char *name,int file)
@@ -1567,8 +1574,8 @@ void uninstall_by_name(AMDeviceRef device)
     const void *keys[count];
     const void *values[count];
     CFDictionaryGetKeysAndValues(result, keys, values);
-    NSArray *appInfos = [[NSArray arrayWithObjects:values count:count] autorelease];
-    NSString *nsAppName = [[NSString stringWithUTF8String:app_name] autorelease];
+    NSArray *appInfos = [NSArray arrayWithObjects:values count:count];
+    NSString *nsAppName = [NSString stringWithUTF8String:app_name];
     NSString *nsBundleId = nil;
     for (NSDictionary *val in appInfos) {
         if ([val[@"CFBundleDisplayName"] isEqualToString: nsAppName]) {
@@ -1587,6 +1594,7 @@ void uninstall_by_name(AMDeviceRef device)
     } else {
         on_error(@"[ ERROR ] Can't find the app named \"%@\"", nsAppName);
     }
+    CFRelease(result);
 }
 
 
