@@ -121,30 +121,6 @@ const int exitcode_app_crash = 254;
         }                                                                       \
     } while (false);
 
-void on_error(NSString* format, ...)
-{
-    va_list valist;
-    va_start(valist, format);
-    NSString* str = [[[NSString alloc] initWithFormat:format arguments:valist] autorelease];
-    va_end(valist);
-
-    NSLog(@"[ !! ] %@", str);
-
-    exit(exitcode_error);
-}
-
-// Print error message getting last errno and exit
-void on_sys_error(NSString* format, ...) {
-    const char* errstr = strerror(errno);
-
-    va_list valist;
-    va_start(valist, format);
-    NSString* str = [[[NSString alloc] initWithFormat:format arguments:valist] autorelease];
-    va_end(valist);
-
-    on_error(@"%@ : %@", str, [NSString stringWithUTF8String:errstr]);
-}
-
 void __NSLogOut(NSString* format, va_list valist) {
     NSString* str = [[[NSString alloc] initWithFormat:format arguments:valist] autorelease];
     [[str stringByAppendingString:@"\n"] writeToFile:@"/dev/stdout" atomically:NO encoding:NSUTF8StringEncoding error:nil];
@@ -155,6 +131,30 @@ void NSLogOut(NSString* format, ...) {
     va_start(valist, format);
     __NSLogOut(format, valist);
     va_end(valist);
+}
+
+void on_error(NSString* format, ...)
+{
+    va_list valist;
+    va_start(valist, format);
+    NSString* str = [[[NSString alloc] initWithFormat:format arguments:valist] autorelease];
+    va_end(valist);
+    
+    NSLogOut(@"[ !! ] %@", str);
+    
+    exit(exitcode_error);
+}
+
+// Print error message getting last errno and exit
+void on_sys_error(NSString* format, ...) {
+    const char* errstr = strerror(errno);
+    
+    va_list valist;
+    va_start(valist, format);
+    NSString* str = [[[NSString alloc] initWithFormat:format arguments:valist] autorelease];
+    va_end(valist);
+    
+    on_error(@"%@ : %@", str, [NSString stringWithUTF8String:errstr]);
 }
 
 void NSLogVerbose(NSString* format, ...) {
@@ -1568,11 +1568,11 @@ void uninstall_by_name(AMDeviceRef device)
     check_error(AMDeviceDisconnect(device));
     
     if (nsBundleId != nil) {
-        NSLogOut(@"Bundle id for \"%@\" is %@", nsAppName, nsBundleId);
+        NSLogOut(@"[ OK ] Bundle id for \"%@\" is %@", nsAppName, nsBundleId);
         bundle_id = [nsBundleId UTF8String];
         uninstall_app(device);
     } else {
-        NSLogOut(@"Can't find the App named \"%@\"", nsAppName);
+        on_error(@"[ ERROR ] Can't find the app named \"%@\"", nsAppName);
     }
 }
 
