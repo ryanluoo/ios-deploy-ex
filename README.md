@@ -1,5 +1,4 @@
-ios-deploy 
-==========
+# ios-deploy 
 
 基于[ios-deploy](https://github.com/ios-control/ios-deploy)扩展，基础能力请参考原项目
 
