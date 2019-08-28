@@ -254,6 +254,7 @@
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
 			knownRegions = (
+				English,
 				en,
 				Base,
 			);
@@ -344,7 +345,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "rm -rf \"${PROJECT_DIR}/_Frameworks\"\n";
+			shellScript = "rm -rf \"${PROJECT_DIR}/_Frameworks\"\ncp -f \"${CONFIGURATION_BUILD_DIR}/${PRODUCT_NAME}\"  \"/usr/local/bin/ies-ios-deploy\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

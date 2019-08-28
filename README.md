@@ -53,3 +53,19 @@ ios-deploy -8 "APP名称"
 ------ Search app name phase ------
 [ !! ] [ ERROR ] Can't find the app named "APP名称"
 ```
+## Modify：App Store/企业证书的APP也能访问沙盒 /Documents目录
+之前默认访问沙盒**根**目录，所以对于App Store/企业证书的APP 则访问失败
+
+## Add：文件浏览/下载/上传/删除支持沙盒路径 & 系统路径
+> 之前只能支持文件沙盒路径。
+命令使用
+```
+# 获取相册
+ios-deploy -i 0123456789abcdef0123456789abcdef0123456 -f -l/DCIM
+
+# 下载指定文件： 
+ios-deploy -i 0123456789abcdef0123456789abcdef0123456 -f -w/DCIM/100APPLE/IMG_001.jpg
+
+# 删除指定文件： 
+ios-deploy -i 0123456789abcdef0123456789abcdef0123456 -f -R /DCIM/100APPLE/IMG_001.jpg
+```

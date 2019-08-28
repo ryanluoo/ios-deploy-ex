@@ -81,6 +81,7 @@ char *command = NULL;
 char const*target_filename = NULL;
 char const*upload_pathname = NULL;
 char *bundle_id = NULL;
+bool file_system = false;
 char *app_name= NULL;
 bool interactive = true;
 bool justlaunch = false;
@@ -1174,6 +1175,29 @@ void read_dir(service_conn_t afcFd, afc_connection* afc_conn_p, const char* dir,
     AFCDirectoryClose(afc_conn_p, afc_dir_p);
 }
 
+service_conn_t start_afc_service(AMDeviceRef device) {
+    AMDeviceConnect(device);
+    assert(AMDeviceIsPaired(device));
+    check_error(AMDeviceValidatePairing(device));
+    check_error(AMDeviceStartSession(device));
+    service_conn_t afcFd;
+    
+    if (AMDeviceStartService(device, AMSVC_AFC, &afcFd, 0) != 0) {
+        on_error(@"Unable to start file service!");
+    }
+
+    check_error(AMDeviceStopSession(device));
+    check_error(AMDeviceDisconnect(device));
+
+    return afcFd;
+}
+
+typedef enum _HouseArrestType {
+    VendNone = 0,
+    VendContainer,
+    VendDocuments
+} HouseArrestType;
+HouseArrestType houseType = VendNone;
 
 // Used to send files to app-specific sandbox (Documents dir)
 service_conn_t start_house_arrest_service(AMDeviceRef device) {
@@ -1183,14 +1207,29 @@ service_conn_t start_house_arrest_service(AMDeviceRef device) {
     check_error(AMDeviceStartSession(device));
 
     service_conn_t houseFd;
-
     if (bundle_id == NULL) {
         on_error(@"Bundle id is not specified");
     }
 
     CFStringRef cf_bundle_id = CFStringCreateWithCString(NULL, bundle_id, kCFStringEncodingUTF8);
-    if (AMDeviceStartHouseArrestService(device, cf_bundle_id, 0, &houseFd, 0) != 0)
-    {
+    
+    CFStringRef keys[1];
+    keys[0] = CFSTR("Command");
+    CFStringRef values[1];
+    values[0] = CFSTR("VendDocuments");
+    CFDictionaryRef command = CFDictionaryCreate(kCFAllocatorDefault,
+                                                 (void*)keys,
+                                                 (void*)values,
+                                                 1,
+                                                 &kCFTypeDictionaryKeyCallBacks,
+                                                 &kCFTypeDictionaryValueCallBacks);
+    
+    if (AMDeviceStartHouseArrestService(device, cf_bundle_id, 0, &houseFd, 0) == 0) {
+        houseType = VendContainer;
+    } else if (AMDeviceStartHouseArrestService(device, cf_bundle_id, command, &houseFd, 0) == 0) {
+        houseType = VendDocuments;
+    } else {
+        houseType = VendNone;
         on_error(@"Unable to find bundle with id: %@", [NSString stringWithUTF8String:bundle_id]);
     }
 
@@ -1240,13 +1279,21 @@ void* read_file_to_memory(char const * path, size_t* file_size)
 
 void list_files(AMDeviceRef device)
 {
-    service_conn_t houseFd = start_house_arrest_service(device);
-
     afc_connection* afc_conn_p;
-    if (AFCConnectionOpen(houseFd, 0, &afc_conn_p) == 0) {
-        read_dir(houseFd, afc_conn_p, list_root?list_root:"/", NULL);
-        AFCConnectionClose(afc_conn_p);
+    service_conn_t fd;
+    if (file_system) {
+        fd = start_afc_service(device);
     }
+    else {
+        fd = start_house_arrest_service(device);
+    }
+    
+    char* list_file_root = list_root ? list_root : houseType == VendDocuments ? "/Documents" : "/";
+    if (AFCConnectionOpen(fd, 0, &afc_conn_p) == 0) {
+        read_dir(fd, afc_conn_p, list_file_root, NULL);
+    }
+    
+    AFCConnectionClose(afc_conn_p);
 }
 
 int app_exists(AMDeviceRef device)
@@ -1332,67 +1379,70 @@ void copy_file_callback(afc_connection* afc_conn_p, const char *name,int file)
     if (*local_name=='\0') return;
 
     if (file) {
-    afc_file_ref fref;
-    int err = AFCFileRefOpen(afc_conn_p,name,1,&fref);
+        afc_file_ref fref;
+        int err = AFCFileRefOpen(afc_conn_p,name,1,&fref);
 
-    if (err) {
-        fprintf(stderr,"AFCFileRefOpen(\"%s\") failed: %d\n",name,err);
-        return;
-    }
+        if (err) {
+            fprintf(stderr,"AFCFileRefOpen(\"%s\") failed: %d\n",name,err);
+            return;
+        }
 
-    FILE *fp = fopen(local_name,"w");
+        FILE *fp = fopen(local_name,"w");
 
-    if (fp==NULL) {
-        fprintf(stderr,"fopen(\"%s\",\"w\") failer: %s\n",local_name,strerror(errno));
+        if (fp==NULL) {
+            fprintf(stderr,"fopen(\"%s\",\"w\") failer: %s\n",local_name,strerror(errno));
+            AFCFileRefClose(afc_conn_p,fref);
+            return;
+        }
+
+        char buf[4096];
+        size_t sz=sizeof(buf);
+
+        while (AFCFileRefRead(afc_conn_p,fref,buf,&sz)==0 && sz) {
+            fwrite(buf,sz,1,fp);
+            sz = sizeof(buf);
+        }
+
         AFCFileRefClose(afc_conn_p,fref);
-        return;
-    }
-
-    char buf[4096];
-    size_t sz=sizeof(buf);
-
-    while (AFCFileRefRead(afc_conn_p,fref,buf,&sz)==0 && sz) {
-        fwrite(buf,sz,1,fp);
-        sz = sizeof(buf);
-    }
-
-    AFCFileRefClose(afc_conn_p,fref);
-    fclose(fp);
+        fclose(fp);
     } else {
-    if (mkdir(local_name,0777) && errno!=EEXIST)
-        fprintf(stderr,"mkdir(\"%s\") failed: %s\n",local_name,strerror(errno));
+        if (mkdir(local_name,0777) && errno!=EEXIST)
+            fprintf(stderr,"mkdir(\"%s\") failed: %s\n",local_name,strerror(errno));
     }
 }
 
 void download_tree(AMDeviceRef device)
 {
-    service_conn_t houseFd = start_house_arrest_service(device);
-    afc_connection* afc_conn_p = NULL;
+    afc_connection* afc_conn_p;
+    service_conn_t fd;
+    if (file_system) {
+        fd = start_afc_service(device);
+    } else {
+        fd = start_house_arrest_service(device);
+    }
+    char* list_file_root = list_root ? list_root : houseType == VendDocuments ? "/Documents" : "/";
+
     char *dirname = NULL;
 
-    list_root = list_root? list_root : "/";
     target_filename = target_filename? target_filename : ".";
 
     NSString* targetPath = [NSString pathWithComponents:@[ @(target_filename), @(list_root)] ];
     mkdirp([targetPath stringByDeletingLastPathComponent]);
 
-    if (AFCConnectionOpen(houseFd, 0, &afc_conn_p) == 0)  do {
-
-    if (target_filename) {
-        dirname = strdup(target_filename);
-        mkdirp(@(dirname));
-        if (mkdir(dirname,0777) && errno!=EEXIST) {
-        fprintf(stderr,"mkdir(\"%s\") failed: %s\n",dirname,strerror(errno));
-        break;
+    if (AFCConnectionOpen(fd, 0, &afc_conn_p) == 0)  do {
+        if (target_filename) {
+            dirname = strdup(target_filename);
+            mkdirp(@(dirname));
+            if (mkdir(dirname,0777) && errno!=EEXIST) {
+                fprintf(stderr,"mkdir(\"%s\") failed: %s\n",dirname,strerror(errno));
+                break;
+            }
+            if (chdir(dirname)) {
+                fprintf(stderr,"chdir(\"%s\") failed: %s\n",dirname,strerror(errno));
+                break;
+            }
         }
-        if (chdir(dirname)) {
-        fprintf(stderr,"chdir(\"%s\") failed: %s\n",dirname,strerror(errno));
-        break;
-        }
-    }
-
-    read_dir(houseFd, afc_conn_p, list_root, copy_file_callback);
-
+        read_dir(fd, afc_conn_p, list_file_root, copy_file_callback);
     } while(0);
 
     if (dirname) free(dirname);
@@ -1404,11 +1454,16 @@ void upload_single_file(AMDeviceRef device, afc_connection* afc_conn_p, NSString
 
 void upload_file(AMDeviceRef device)
 {
-    service_conn_t houseFd = start_house_arrest_service(device);
-
     afc_connection afc_conn;
     afc_connection* afc_conn_p = &afc_conn;
-    AFCConnectionOpen(houseFd, 0, &afc_conn_p);
+    service_conn_t fd;
+    if (file_system) {
+        fd = start_afc_service(device);
+    } else {
+        fd = start_house_arrest_service(device);
+    }
+    
+    AFCConnectionOpen(fd, 0, &afc_conn_p);
 
     //        read_dir(houseFd, NULL, "/", NULL);
 
@@ -1505,11 +1560,16 @@ void make_directory(AMDeviceRef device) {
 }
 
 void remove_path(AMDeviceRef device) {
-    service_conn_t houseFd = start_house_arrest_service(device);
-
     afc_connection afc_conn;
     afc_connection* afc_conn_p = &afc_conn;
-    AFCConnectionOpen(houseFd, 0, &afc_conn_p);
+    service_conn_t fd;
+    if (file_system) {
+        fd = start_afc_service(device);
+    } else {
+        fd = start_house_arrest_service(device);
+    }
+    
+    AFCConnectionOpen(fd, 0, &afc_conn_p);
 
 
     assert(AFCRemovePath(afc_conn_p, target_filename) == 0);
@@ -1616,7 +1676,7 @@ void handle_device(AMDeviceRef device) {
             found_device = true;
             CFRelease(deviceCFSTR);
         } else {
-            NSLogOut(@"Skipping %@.", device_full_name);
+//            NSLogOut(@"Skipping %@.", device_full_name);
             return;
         }
     } else {
@@ -1844,6 +1904,7 @@ void usage(const char* app) {
         @"  -9, --uninstall_only            uninstall the app ONLY. Use only with -1 <bundle_id> \n"
         @"  -8, --uninstall_by_name <name>  uninstall the app by display name \n"
         @"  -1, --bundle_id <bundle id>     specify bundle id for list and upload\n"
+        @"  -f, --file_system               specify only file system for list and download\n"
         @"  -l, --list                      list files\n"
         @"  -o, --upload <file>             upload file\n"
         @"  -w, --download                  download app tree\n"
@@ -1894,6 +1955,7 @@ int main(int argc, char *argv[]) {
         { "uninstall_by_name", required_argument, NULL, '8'},
         { "list", optional_argument, NULL, 'l' },
         { "bundle_id", required_argument, NULL, '1'},
+        { "file_system", no_argument, NULL, 'f'},
         { "upload", required_argument, NULL, 'o'},
         { "download", optional_argument, NULL, 'w'},
         { "to", required_argument, NULL, '2'},
@@ -1907,7 +1969,7 @@ int main(int argc, char *argv[]) {
     };
     int ch;
 
-    while ((ch = getopt_long(argc, argv, "VmcdvunNrILeD:R:i:b:a:s:t:g:x:p:1:2:o:l::w::8:9::B::W", longopts, NULL)) != -1)
+    while ((ch = getopt_long(argc, argv, "VmcdvunNrILefD:R:i:b:a:s:t:g:x:p:1:2:o:l::w::8:9::B::W", longopts, NULL)) != -1)
     {
         switch (ch) {
         case 'm':
@@ -1978,6 +2040,9 @@ int main(int argc, char *argv[]) {
             break;
         case '1':
             bundle_id = optarg;
+            break;
+        case 'f':
+            file_system = true;
             break;
         case '2':
             target_filename = optarg;

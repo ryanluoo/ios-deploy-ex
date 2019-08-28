@@ -63,7 +63,7 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "-c -i 9b4c302283c5ebd4e9ce4b8b0a0e0e7cdc3d1653"
+            argument = "-i 58bd4c4569eb310a2779db2e1908dcc9b2411232  -f  -R /DCIM/100APPLE/IMG_0074.MP4"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>
