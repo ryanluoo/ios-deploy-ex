@@ -63,7 +63,7 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "-i 3c6cb317d53e2ce91eb0ef83bef085a62aa84597  -f  -w/DCIM"
+            argument = "-i 3c6cb317d53e2ce91eb0ef83bef085a62aa84597  -9 -3 FaceWda-Runner"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

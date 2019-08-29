@@ -180,6 +180,7 @@
 				C0CD3D981F59D20100F954DB /* ShellScript */,
 				7E70898B1B587BF3004D23AA /* Frameworks */,
 				7EDCC3CC1C45DC89002F9851 /* Sources */,
+				94090FFA2317CC9200737C84 /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -317,6 +318,23 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "echo \"\\\"# AUTO-GENERATED - DO NOT MODIFY\\\"\" > src/ios-deploy/lldb.py.h\nawk '{ print \"\\\"\"$0\"\\\\n\\\"\"}' src/scripts/lldb.py >> src/ios-deploy/lldb.py.h\n";
+		};
+		94090FFA2317CC9200737C84 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\ncp -f \"${CONFIGURATION_BUILD_DIR}/${PRODUCT_NAME}\"  \"/usr/local/bin/ies-ios-deploy\"\n";
 		};
 		C0CD3D981F59D20100F954DB /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;

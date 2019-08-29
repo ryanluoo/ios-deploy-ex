@@ -36,8 +36,8 @@ ios-deploy -c
 ## Add: 根据显示名称卸载App
 命令使用：
 ```
-ios-deploy --uninstall_by_name "APP名称"
-ios-deploy -8 "APP名称"
+ios-deploy --bundle_name "APP名称" -9
+ios-deploy -3 "APP名称" -9
 ```
 输出：
 ```
