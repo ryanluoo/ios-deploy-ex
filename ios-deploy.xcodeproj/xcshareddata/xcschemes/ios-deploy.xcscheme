@@ -63,7 +63,7 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "-i 3c6cb317d53e2ce91eb0ef83bef085a62aa84597  -9 -3 FaceWda-Runner"
+            argument = "-i 58bd4c4569eb310a2779db2e1908dcc9b2411232 -1 org.videolan.vlc-ios -l -j"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

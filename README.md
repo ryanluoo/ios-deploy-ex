@@ -58,6 +58,7 @@ ios-deploy -3 "APP名称" -9
 
 ## Add：文件浏览/下载/上传/删除支持沙盒路径 & 系统路径
 > 之前只能支持文件沙盒路径。
+
 命令使用
 ```
 # 获取相册
@@ -68,4 +69,34 @@ ios-deploy -i 0123456789abcdef0123456789abcdef0123456 -f -w/DCIM/100APPLE/IMG_00
 
 # 删除指定文件： 
 ios-deploy -i 0123456789abcdef0123456789abcdef0123456 -f -R /DCIM/100APPLE/IMG_001.jpg
+```
+## Modify：查询文件命令（-l, --list）支持json格式，展示原始文件的stat数据
+命令使用
+```
+# 获取文件
+ios-deploy -i 0123456789abcdef0123456789abcdef0123456 -i com.test.app -l -j
+```
+输出：
+```
+[
+    {
+        "st_ifmt" : "S_IFREG",
+        "st_birthtime" : 1567085311725756979,
+        "st_nlink" : 8,
+        "full_path" : "\/Library\/test",
+        "st_blocks" : -1,
+        "st_mtime" : 1567085311731696392,
+        "st_size" : 1680
+    },
+    {
+        "st_ifmt" : "S_IFDIR",
+        "st_birthtime" : 1567070792892963067,
+        "st_nlink" : 0,
+        "full_path" : "\/Documents",
+        "st_blocks" : -1,
+        "st_mtime" : 1567070792892963067,
+        "st_size" : 64
+    },
+...
+]
 ```

@@ -99,6 +99,7 @@ char *list_root = NULL;
 int _timeout = 0;
 int _detectDeadlockTimeout = 0;
 bool _json_output = false;
+NSMutableArray *fileList = nil;
 int port = 0;    // 0 means "dynamically assigned"
 CFStringRef last_path = NULL;
 service_conn_t gdbfd;
@@ -152,10 +153,10 @@ void NSLogVerbose(NSString* format, ...) {
     }
 }
 
-void NSLogJSON(NSDictionary* jsonDict) {
+void NSLogJSON(id jsonObj) {
     if (_json_output) {
         NSError *error;
-        NSData *data = [NSJSONSerialization dataWithJSONObject:jsonDict
+        NSData *data = [NSJSONSerialization dataWithJSONObject:jsonObj
                                                        options:NSJSONWritingPrettyPrinted
                                                          error:&error];
         assert(data != NULL);
@@ -1187,7 +1188,6 @@ CFStringRef get_bundle_id(CFURLRef app_url)
     return bundle_id;
 }
 
-
 void read_dir(AFCConnectionRef afc_conn_p, const char* dir,
               void(*callback)(AFCConnectionRef conn, const char *dir, int file))
 {
@@ -1202,19 +1202,57 @@ void read_dir(AFCConnectionRef afc_conn_p, const char* dir,
         // there was a problem reading or opening the file to get info on it, abort
         return;
     }
-
+    
+    long long mtime = -1;
+    long long birthtime = -1;
+    long size = -1;
+    long blocks = -1;
+    long nlink = -1;
+    NSString * ifmt = nil;
     while((AFCKeyValueRead(afc_dict_p,&key,&val) == 0) && key && val) {
-        if (strcmp(key,"st_ifmt")==0) {
+        if (strcmp(key, "st_ifmt") == 0) {
             not_dir = strcmp(val,"S_IFDIR");
-            break;
+            ifmt = [NSString stringWithUTF8String:val];
+        }
+        if (strcmp(key, "st_size") == 0) {
+            size = atol(val);
+        }
+        if (strcmp(key, "st_mtime") == 0) {
+            mtime = atoll(val);
+        }
+        if (strcmp(key, "st_birthtime") == 0) {
+            birthtime = atoll(val);
+        }
+        if (strcmp(key, "st_nlink") == 0) {
+            nlink = atol(val);
+        }
+        if (strcmp(key, "st_blocks") == 0) {
+            nlink = atol(val);
         }
     }
     AFCKeyValueClose(afc_dict_p);
-
-    if (not_dir) {
-        NSLogOut(@"%@", [NSString stringWithUTF8String:dir]);
+    
+    if (_json_output) {
+//        NSDateFormatter *dateFmt = [[NSDateFormatter alloc] init];
+//        [dateFmt setDateFormat: @"yyyy-MM-dd HH:mm:ss"];
+//        [fileList addObject: @{
+//                               @"FileType": ifmt,
+//                               @"CreateTime": [dateFmt stringFromDate:[NSDate dateWithTimeIntervalSince1970:birthtime / 1000 / 1000 / 1000]],
+//                               @"ModifyTime": [dateFmt stringFromDate:[NSDate dateWithTimeIntervalSince1970:mtime / 1000 / 1000 / 1000]],
+//                               @"FullPath": [NSString stringWithUTF8String:dir],
+//                               @"Size": @(size),
+//                               }];
+//        [dateFmt release];
+        [fileList addObject: @{@"full_path": [NSString stringWithUTF8String:dir],
+                               @"st_ifmt": ifmt,
+                               @"st_nlink": @(nlink),
+                               @"st_size": @(size),
+                               @"st_blocks": @(blocks),
+                               @"st_mtime": @(mtime),
+                               @"st_birthtime": @(birthtime),
+                               }];
     } else {
-        NSLogOut(@"%@/", [NSString stringWithUTF8String:dir]);
+        NSLog(@"%@%@", [NSString stringWithUTF8String:dir], not_dir ? @"" : @"/");
     }
 
     if (not_dir) {
@@ -1357,6 +1395,7 @@ void* read_file_to_memory(char const * path, size_t* file_size)
     fclose(fd);
     return content;
 }
+
 void list_files(AMDeviceRef device)
 {
     AFCConnectionRef afc_conn_p;
@@ -1367,7 +1406,11 @@ void list_files(AMDeviceRef device)
     }
     assert(afc_conn_p);
     char* list_file_root = list_root ? list_root : houseType == VendDocuments ? "/Documents" : "/";
+    fileList = [[NSMutableArray alloc] init];
     read_dir(afc_conn_p, list_file_root, NULL);
+    if (_json_output) {
+        NSLogJSON(fileList);
+    }
     check_error(AFCConnectionClose(afc_conn_p));
 }
 
@@ -1533,7 +1576,11 @@ void download_tree(AMDeviceRef device)
                 break;
             }
         }
+        fileList = [[NSMutableArray alloc] init];
         read_dir(afc_conn_p, list_file_root, copy_file_callback);
+        if (_json_output) {
+            NSLogJSON(fileList);
+        }
     } while(0);
 
     if (dirname) free(dirname);
@@ -1971,9 +2018,9 @@ void usage(const char* app) {
         @"  -1, --bundle_id <bundle id>     specify bundle id for list and upload\n"
         @"  -3, --bundle_name <bundle name> specify bundle name for uninstall\n"
         @"  -f, --file_system               specify only file system for list and download\n"
-        @"  -l, --list[=<dir>]              list all app files or the specified directory\n"
+        @"  -l, --list[<dir>]               list all app files or the specified directory\n"
         @"  -o, --upload <file>             upload file\n"
-        @"  -w, --download[=<path>]         download app tree or the specified file/directory\n"
+        @"  -w, --download[<path>]          download app tree or the specified file/directory\n"
         @"  -2, --to <target pathname>      use together with up/download file/tree. specify target\n"
         @"  -D, --mkdir <dir>               make directory on device\n"
         @"  -R, --rm <path>                 remove file or directory on device (directories must be empty)\n"
