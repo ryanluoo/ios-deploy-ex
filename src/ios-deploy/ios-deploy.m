@@ -1468,6 +1468,7 @@ void list_bundle_id(AMDeviceRef device)
     check_error(AMDeviceStartSession(device));
     
     NSArray *a = [NSArray arrayWithObjects:
+                  @"CFBundleName",
                   @"CFBundleDisplayName",
                   @"CFBundleIdentifier",
                   @"CFBundleVersion",
@@ -1484,21 +1485,23 @@ void list_bundle_id(AMDeviceRef device)
     CFDictionaryGetKeysAndValues(result, keys, values);
     
     NSArray *appInfos = [NSArray arrayWithObjects:values count:count];
-    
-    NSLogOut(@"%@, %@, %@, %@",
-             @"CFBundleIdentifier",
-             @"CFBundleDisplayName",
-             @"CFBundleVersion",
-             @"CFBundleShortVersionString");
-    for (NSDictionary *val in appInfos) {
-        NSLogOut(@"%@, \"%@\", \"%@\", \"%@\"",
-                 val[@"CFBundleIdentifier"],
-                 val[@"CFBundleDisplayName"],
-                 val[@"CFBundleVersion"],
-                 val[@"CFBundleShortVersionString"]);
+    if (_json_output) {
+        NSLogJSON(appInfos);
+    } else {
+        NSLogOut(@"%@, %@, %@, %@",
+                 @"CFBundleIdentifier",
+                 @"CFBundleDisplayName",
+                 @"CFBundleVersion",
+                 @"CFBundleShortVersionString");
+        for (NSDictionary *val in appInfos) {
+            NSLogOut(@"%@, \"%@\", \"%@\", \"%@\"",
+                     val[@"CFBundleIdentifier"],
+                     val[@"CFBundleDisplayName"],
+                     val[@"CFBundleVersion"],
+                     val[@"CFBundleShortVersionString"]);
+        }
     }
-    
-    
+
     check_error(AMDeviceStopSession(device));
     check_error(AMDeviceDisconnect(device));
     CFRelease(result);
