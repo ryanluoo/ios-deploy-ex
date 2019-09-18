@@ -88,6 +88,7 @@ char const*target_filename = NULL;
 char const*upload_pathname = NULL;
 char *bundle_id = NULL;
 bool file_system = false;
+bool none_recursively = false;
 char *bundle_name = NULL;
 bool interactive = true;
 bool justlaunch = false;
@@ -1233,16 +1234,6 @@ void read_dir(AFCConnectionRef afc_conn_p, const char* dir,
     AFCKeyValueClose(afc_dict_p);
     
     if (_json_output) {
-//        NSDateFormatter *dateFmt = [[NSDateFormatter alloc] init];
-//        [dateFmt setDateFormat: @"yyyy-MM-dd HH:mm:ss"];
-//        [fileList addObject: @{
-//                               @"FileType": ifmt,
-//                               @"CreateTime": [dateFmt stringFromDate:[NSDate dateWithTimeIntervalSince1970:birthtime / 1000 / 1000 / 1000]],
-//                               @"ModifyTime": [dateFmt stringFromDate:[NSDate dateWithTimeIntervalSince1970:mtime / 1000 / 1000 / 1000]],
-//                               @"FullPath": [NSString stringWithUTF8String:dir],
-//                               @"Size": @(size),
-//                               }];
-//        [dateFmt release];
         [fileList addObject: @{@"full_path": [NSString stringWithUTF8String:dir],
                                @"st_ifmt": ifmt,
                                @"st_nlink": @(nlink),
@@ -1284,7 +1275,9 @@ void read_dir(AFCConnectionRef afc_conn_p, const char* dir,
         if (dir_joined[strlen(dir)-1] != '/')
             strcat(dir_joined, "/");
         strcat(dir_joined, dir_ent);
-        read_dir(afc_conn_p, dir_joined, callback);
+        if (!(none_recursively && strcmp(list_root, dir) != 0)) {
+            read_dir(afc_conn_p, dir_joined, callback);
+        }
         free(dir_joined);
     }
 
@@ -1409,7 +1402,8 @@ void list_files(AMDeviceRef device)
     fileList = [[NSMutableArray alloc] init];
     read_dir(afc_conn_p, list_file_root, NULL);
     if (_json_output) {
-        NSLogJSON(fileList);
+        NSLogJSON(@{@"Event": @"FileListed",
+                    @"Files": fileList});
     }
     check_error(AFCConnectionClose(afc_conn_p));
 }
@@ -1565,7 +1559,9 @@ void download_tree(AMDeviceRef device)
 
     NSString* targetPath = [NSString pathWithComponents:@[ @(target_filename), @(list_file_root)] ];
     mkdirp([targetPath stringByDeletingLastPathComponent]);
-
+    
+    // Always download recursively
+    none_recursively = false;
     do {
         if (target_filename) {
             dirname = strdup(target_filename);
@@ -1648,7 +1644,6 @@ void upload_single_file(AMDeviceRef device, AFCConnectionRef afc_conn_p, NSStrin
         NSString *dirpath = [destinationPath stringByDeletingLastPathComponent];
         check_error(AFCDirectoryCreate(afc_conn_p, [dirpath fileSystemRepresentation]));
     }
-
 
     int ret = AFCFileRefOpen(afc_conn_p, [destinationPath fileSystemRepresentation], 3, &file_ref);
     if (ret == 0x000a) {
@@ -2021,6 +2016,7 @@ void usage(const char* app) {
         @"  -1, --bundle_id <bundle id>     specify bundle id for list and upload\n"
         @"  -3, --bundle_name <bundle name> specify bundle name for uninstall\n"
         @"  -f, --file_system               specify only file system for list and download\n"
+        @"  -F, --no_recursive              specify don't recursively walk directory, only work with --list/-l command \n"
         @"  -l, --list[<dir>]               list all app files or the specified directory\n"
         @"  -o, --upload <file>             upload file\n"
         @"  -w, --download[<path>]          download app tree or the specified file/directory\n"
@@ -2093,7 +2089,7 @@ int main(int argc, char *argv[]) {
     };
     int ch;
 
-    while ((ch = getopt_long(argc, argv, "VmcdvunrILefD:R:i:b:a:t:p:1:2:3:o:l::w::9BWjNs:OE:C", longopts, NULL)) != -1)
+    while ((ch = getopt_long(argc, argv, "VmcdvunrILefFD:R:i:b:a:t:p:1:2:3:o:l::w::9BWjNs:OE:C", longopts, NULL)) != -1)
     {
         switch (ch) {
         case 'm':
@@ -2162,6 +2158,9 @@ int main(int argc, char *argv[]) {
             break;
         case 'f':
             file_system = true;
+            break;
+        case 'F':
+            none_recursively = true;
             break;
         case '3':
             bundle_name = optarg;

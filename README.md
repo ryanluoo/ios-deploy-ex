@@ -100,3 +100,28 @@ ios-deploy -i 0123456789abcdef0123456789abcdef0123456 -i com.test.app -l -j
 ...
 ]
 ```
+## Add：支持指定非递归方式遍历文件夹（即只展示当前目录下文件）
+命令使用
+```
+# 非递归展示
+ios-deploy -f -l/DCIM -F
+
+# 默认为递归展示
+ios-deploy -f -l/DCIM 
+```
+输出：
+```
+# 非递归展示
+2019-09-18 21:39:41.632 ies-ios-deploy[9892:11015908] /DCIM/
+2019-09-18 21:39:41.633 ies-ios-deploy[9892:11015908] /DCIM/.MISC/
+2019-09-18 21:39:41.635 ies-ios-deploy[9892:11015908] /DCIM/100APPLE/
+2019-09-18 21:39:41.636 ies-ios-deploy[9892:11015908] /DCIM/101APPLE/
+
+# 递归展示
+2019-09-18 21:39:05.780 ies-ios-deploy[9859:11015491] /DCIM/
+2019-09-18 21:39:05.781 ies-ios-deploy[9859:11015491] /DCIM/.MISC/
+2019-09-18 21:39:05.782 ies-ios-deploy[9859:11015491] /DCIM/.MISC/Incoming/
+2019-09-18 21:39:05.783 ies-ios-deploy[9859:11015491] /DCIM/100APPLE/
+2019-09-18 21:39:05.784 ies-ios-deploy[9859:11015491] /DCIM/101APPLE/
+2019-09-18 21:39:05.785 ies-ios-deploy[9859:11015491] /DCIM/101APPLE/IMG_1689.JPG
+```
