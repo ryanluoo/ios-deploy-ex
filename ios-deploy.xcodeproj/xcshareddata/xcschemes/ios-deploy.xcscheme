@@ -63,7 +63,7 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "-f -l/DCIM  -j -F"
+            argument = "-l -1 com.photoManager -F"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

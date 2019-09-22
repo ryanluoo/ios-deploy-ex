@@ -97,6 +97,7 @@ char *device_id = NULL;
 char *args = NULL;
 char *envs = NULL;
 char *list_root = NULL;
+char* list_file_root = NULL;
 int _timeout = 0;
 int _detectDeadlockTimeout = 0;
 bool _json_output = false;
@@ -1243,7 +1244,7 @@ void read_dir(AFCConnectionRef afc_conn_p, const char* dir,
                                @"st_birthtime": @(birthtime),
                                }];
     } else {
-        NSLog(@"%@%@", [NSString stringWithUTF8String:dir], not_dir ? @"" : @"/");
+        NSLogOut(@"%@%@", [NSString stringWithUTF8String:dir], not_dir ? @"" : @"/");
     }
 
     if (not_dir) {
@@ -1275,7 +1276,7 @@ void read_dir(AFCConnectionRef afc_conn_p, const char* dir,
         if (dir_joined[strlen(dir)-1] != '/')
             strcat(dir_joined, "/");
         strcat(dir_joined, dir_ent);
-        if (!(none_recursively && strcmp(list_root, dir) != 0)) {
+        if (!(none_recursively && strcmp(list_file_root, dir) != 0)) {
             read_dir(afc_conn_p, dir_joined, callback);
         }
         free(dir_joined);
@@ -1398,7 +1399,7 @@ void list_files(AMDeviceRef device)
         afc_conn_p = start_house_arrest_service(device);
     }
     assert(afc_conn_p);
-    char* list_file_root = list_root ? list_root : houseType == VendDocuments ? "/Documents" : "/";
+    list_file_root = list_root ? list_root : houseType == VendDocuments ? "/Documents" : "/";
     fileList = [[NSMutableArray alloc] init];
     read_dir(afc_conn_p, list_file_root, NULL);
     if (_json_output) {
@@ -1554,7 +1555,7 @@ void download_tree(AMDeviceRef device)
     assert(afc_conn_p);
     char *dirname = NULL;
     
-    char* list_file_root = list_root ? list_root : houseType == VendDocuments ? "/Documents" : "/";
+    list_file_root = list_root ? list_root : houseType == VendDocuments ? "/Documents" : "/";
     target_filename = target_filename? target_filename : ".";
 
     NSString* targetPath = [NSString pathWithComponents:@[ @(target_filename), @(list_file_root)] ];
