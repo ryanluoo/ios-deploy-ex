@@ -2072,6 +2072,7 @@ int main(int argc, char *argv[]) {
         { "list", optional_argument, NULL, 'l' },
         { "bundle_id", required_argument, NULL, '1'},
         { "file_system", no_argument, NULL, 'f'},
+        { "no_recursive", no_argument, NULL, 'F' },
         { "bundle_name", required_argument, NULL, '3'},
         { "upload", required_argument, NULL, 'o'},
         { "download", optional_argument, NULL, 'w'},
